@@ -1975,16 +1975,7 @@ function playEndless() {
     `${endlessIndex + 1} / ${favorites.length}`;
 }
 
-// Default presets (added if favorites is empty)
-const defaultPresets = [
-  { id: 1, color: '#bf51b3', radius: 97, tube: 1, radialSegments: 800, tubularSegments: 20, p: 89, q: 128, thumb: '' }
-];
-
 loadFavorites();
-if (favorites.length === 0) {
-  defaultPresets.forEach(p => favorites.push(p));
-  renderFavGallery();
-}
 randomizeParams();
 render();
 </script>

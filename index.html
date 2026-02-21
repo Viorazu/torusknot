@@ -23,7 +23,7 @@ canvas { display: block; }
   right: 24px;
   width: 300px;
   background: rgb(10, 10, 14);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 16px;
   padding: 24px;
   z-index: 300;
@@ -64,7 +64,6 @@ canvas { display: block; }
 #panel-body { transition: all 0.3s; }
 #panel.collapsed #panel-body { display: none; }
 #panel.collapsed { width: auto; }
-#panel:hover { }
 
 /* ===== SLIDER ROWS ===== */
 .s-row {
@@ -450,13 +449,6 @@ canvas { display: block; }
   background: rgba(130, 224, 32, 0.03);
 }
 
-.fav-thumb {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex-shrink: 0;
-}
 
 .fav-info {
   flex: 1;
@@ -574,6 +566,8 @@ canvas { display: block; }
 #preview-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 </style>
@@ -638,7 +632,6 @@ canvas { display: block; }
       <button class="s-lock" data-lock="q" onclick="toggleParamLock(this)">○</button>
     </div>
 
-
     <div class="divider"></div>
 
     <!-- Toggles -->
@@ -650,7 +643,6 @@ canvas { display: block; }
       <div class="t-label">camera</div>
       <div class="toggle on" data-toggle="cameraFree" onclick="toggleOption(this)"><div class="toggle-dot"></div></div>
     </div>
-
 
     <div class="divider"></div>
 
@@ -704,7 +696,7 @@ canvas { display: block; }
       <div id="tools-panel" style="display:none; margin-top:6px;">
         <div class="random-row">
           <button class="r-btn" onclick="takeScreenshot()">📷 shot</button>
-          <button class="r-btn" id="btn-record" onclick="toggleRecord()">⏺ rec</button>
+          <button class="r-btn" id="btn-record" onclick="toggleRecord()">⏺ 1loop</button>
           <button class="r-btn" id="btn-share" onclick="toggleShareMenu()">↗ share</button>
         </div>
         <div id="rec-status"></div>
@@ -713,6 +705,9 @@ canvas { display: block; }
           <button class="sns-btn" onclick="shareTo('bluesky')">🦋</button>
           <button class="sns-btn" onclick="shareTo('threads')">◎</button>
           <button class="sns-btn" onclick="shareTo('line')">💬</button>
+          <button class="sns-btn" onclick="shareTo('pinterest')">📌</button>
+          <button class="sns-btn" onclick="shareTo('facebook')">f</button>
+          <button class="sns-btn" onclick="shareTo('reddit')">r/</button>
           <button class="sns-btn" onclick="shareTo('copy')">📋</button>
         </div>
         <div class="divider"></div>
@@ -749,6 +744,9 @@ canvas { display: block; }
       <button class="r-btn" onclick="shareTo('bluesky')">🦋</button>
       <button class="r-btn" onclick="shareTo('threads')">◎</button>
       <button class="r-btn" onclick="shareTo('line')">💬</button>
+      <button class="r-btn" onclick="shareTo('pinterest')">📌</button>
+      <button class="r-btn" onclick="shareTo('facebook')">f</button>
+      <button class="r-btn" onclick="shareTo('reddit')">r/</button>
       <button class="r-btn" onclick="shareTo('copy')">📋</button>
       <button class="r-btn" onclick="closePreview()">✕</button>
     </div>
@@ -788,7 +786,6 @@ function updateCam() {
 }
 updateCam();
 
-// Mouse
 renderer.domElement.addEventListener('mousedown', e => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
 window.addEventListener('mousemove', e => {
   if (!isDragging || !params.cameraFree) return;
@@ -813,7 +810,6 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Touch controls for mobile
 let touchStartDist = 0;
 renderer.domElement.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
@@ -855,7 +851,6 @@ const ranges = isMobile ? {
   tubularSegments: [1, 30], p: [1, 200], q: [1, 200], heightScale: [0, 5]
 };
 
-// Random generation uses tighter ranges to avoid freeze
 const randomRanges = isMobile ? {
   radius: [5, 60], tube: [0, 40], radialSegments: [1, 400],
   tubularSegments: [1, 8], p: [1, 30], q: [1, 30]
@@ -892,7 +887,7 @@ function buildKnot() {
   buildTimer = setTimeout(_buildKnotNow, 16);
 }
 
-let knot2 = null; // second strand for double helix
+let knot2 = null;
 
 function _buildKnotNow() {
   if (knot) {
@@ -907,10 +902,8 @@ function _buildKnotNow() {
     knot2 = null;
   }
 
-  // Clamp rSeg based on p*q to prevent freeze
   let rSeg = Math.round(params.radialSegments);
   let tSeg = Math.round(params.tubularSegments);
-  const pq = Math.round(params.p) * Math.round(params.q);
   const maxVerts = params.doubleHelix ? 12500 : 25000;
   if (rSeg * tSeg > maxVerts) {
     rSeg = Math.floor(maxVerts / Math.max(1, tSeg));
@@ -924,7 +917,7 @@ function _buildKnotNow() {
 
   const mat = new THREE.PointsMaterial({
     color: darkBg ? 0xffffff : new THREE.Color(params.color),
-    size: isMobile ? 2.0 : 3.0, transparent: true,
+    size: isMobile ? 3.5 : 5.0, transparent: true,
     opacity: darkBg ? 0.7 : 0.9, alphaTest: 0.2, depthTest: false,
     blending: darkBg ? THREE.AdditiveBlending : THREE.NormalBlending,
     map: darkBg ? generateSprite() : generateSpriteDark()
@@ -933,26 +926,23 @@ function _buildKnotNow() {
   scene.add(knot);
   knot.position.x = -20;
 
-  // Double helix: second strand rotated by PI/p
   if (params.doubleHelix) {
     const geo2 = new THREE.TorusKnotGeometry(
       params.radius, params.tube,
       rSeg, tSeg,
       Math.round(params.p), Math.round(params.q), params.heightScale
     );
-    // Complementary color for second strand
     const r = parseInt(params.color.slice(1,3), 16);
     const g = parseInt(params.color.slice(3,5), 16);
     const b = parseInt(params.color.slice(5,7), 16);
     const comp = '#' + ((1<<24)+((255-r)<<16)+((255-g)<<8)+(255-b)).toString(16).slice(1);
 
     const mat2 = new THREE.PointsMaterial({
-      color: 0xffffff, size: isMobile ? 1.6 : 2.5, transparent: true,
+      color: 0xffffff, size: isMobile ? 2.8 : 4.0, transparent: true,
       opacity: 0.7, alphaTest: 0.2, depthTest: false,
       blending: THREE.AdditiveBlending, map: generateSprite2(comp)
     });
     knot2 = new THREE.Points(geo2, mat2);
-    // Rotate second strand to offset
     knot2.rotation.y = Math.PI / Math.max(1, Math.round(params.p));
     knot2.rotation.x = Math.PI / Math.max(1, Math.round(params.q)) * 0.5;
     scene.add(knot2);
@@ -1032,7 +1022,6 @@ sliderRows.forEach(row => {
     buildKnot();
   }
 
-  // Direct number input
   valEl.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1050,7 +1039,6 @@ sliderRows.forEach(row => {
   valEl.addEventListener('blur', () => {
     setFromValue(params[key]);
   });
-  // Select all on focus
   valEl.addEventListener('focus', () => valEl.select());
 
   let dragging = false;
@@ -1058,7 +1046,6 @@ sliderRows.forEach(row => {
   window.addEventListener('mousemove', e => { if (dragging) { e.preventDefault(); handleDrag(e); } });
   window.addEventListener('mouseup', () => dragging = false);
 
-  // Expose for external update
   row._setVal = (v) => { params[key] = v; row.dataset.val = v; setFromValue(v); };
 });
 
@@ -1086,7 +1073,6 @@ function toggleOption(el) {
   params[key] = !params[key];
   el.classList.toggle('on', params[key]);
 
-  // Prevent both rotate and camera OFF
   if (!params.rotate && !params.cameraFree) {
     if (key === 'rotate') {
       params.cameraFree = true;
@@ -1116,7 +1102,6 @@ const paramLocks = { radius: false, tube: false, radialSegments: false, tubularS
 
 let parityFilters = { odd: false, even: false, prime: false, pow2: false, fib: false, square: false, tri: false, cat: false, mer: false, twin: false, mirror: false };
 
-// Primes up to 800
 const primes = [];
 (function() {
   for (let n = 2; n <= 800; n++) {
@@ -1127,36 +1112,26 @@ const primes = [];
 })();
 const primeSet = new Set(primes);
 
-// Powers of 2 up to 800
 const pow2Set = new Set();
 for (let n = 1; n <= 800; n *= 2) pow2Set.add(n);
 
-// Fibonacci up to 800
 const fibSet = new Set();
 (function() { let a=1,b=1; while(a<=800){ fibSet.add(a); [a,b]=[b,a+b]; } })();
 
-// Perfect squares up to 800
 const squareSet = new Set();
 for (let n = 1; n*n <= 800; n++) squareSet.add(n*n);
 
-// Triangular numbers up to 800
 const triSet = new Set();
 for (let n = 1; n*(n+1)/2 <= 800; n++) triSet.add(n*(n+1)/2);
 
-// Catalan numbers up to 800
 const catSet = new Set([1, 2, 5, 14, 42, 132, 429]);
-
-// Mersenne primes up to 800
 const merSet = new Set([3, 7, 31, 127]);
 
-// Twin primes up to 800 (primes p where p-2 or p+2 is also prime)
 const twinSet = new Set();
 primes.forEach(p => {
   if (primeSet.has(p - 2) || primeSet.has(p + 2)) twinSet.add(p);
 });
 
-// Mirror-free: not divisible by 4, 6, or 8
-// From Viorazu. 16-torus theory: 4,6,8 are "mirrors" in the 8-cycle
 function isMirrorFree(val) {
   if (val <= 0) return false;
   if (val % 4 === 0) return false;
@@ -1199,7 +1174,6 @@ function toggleBg() {
 }
 
 function toggleParity(mode) {
-  // odd, even, pow2 are mutually exclusive
   if (mode === 'odd' && !parityFilters.odd) { parityFilters.even = false; parityFilters.pow2 = false; }
   if (mode === 'even' && !parityFilters.even) { parityFilters.odd = false; parityFilters.pow2 = false; }
   if (mode === 'pow2' && !parityFilters.pow2) { parityFilters.odd = false; parityFilters.even = false; }
@@ -1229,7 +1203,6 @@ function matchesFilter(val) {
 function applyParity(val, min, max) {
   if (!isAnyFilter()) return val;
   if (matchesFilter(val)) return val;
-  // Search nearest match
   for (let d = 1; d <= max - min; d++) {
     if (val + d <= max && matchesFilter(val + d)) return val + d;
     if (val - d >= min && matchesFilter(val - d)) return val - d;
@@ -1275,9 +1248,8 @@ function toggleColorLock() {
 
 function randomVividColor() {
   const h = Math.random() * 360;
-  const s = 60 + Math.random() * 40; // 60-100%
-  const l = 40 + Math.random() * 30; // 40-70%
-  // HSL to RGB
+  const s = 60 + Math.random() * 40;
+  const l = 40 + Math.random() * 30;
   const c = (1 - Math.abs(2 * l / 100 - 1)) * s / 100;
   const x = c * (1 - Math.abs((h / 60) % 2 - 1));
   const m = l / 100 - c / 2;
@@ -1319,7 +1291,6 @@ function randomizeOnce() { randomizeParams(); }
 function variateOnce() {
   pushHistory();
   fadeTransition(() => {
-    // Nudge color in HSL space
     if (!colorLocked) {
       const r = parseInt(params.color.slice(1,3), 16) / 255;
       const g = parseInt(params.color.slice(3,5), 16) / 255;
@@ -1336,7 +1307,6 @@ function variateOnce() {
       h = (h + (Math.random() - 0.5) * 0.08 + 1) % 1;
       s = Math.max(0.6, Math.min(1, s + (Math.random() - 0.5) * 0.1));
       l = Math.max(0.4, Math.min(0.7, l + (Math.random() - 0.5) * 0.08));
-      // HSL to hex
       function hue2rgb(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q-p)*6*t; if (t < 1/2) return q; if (t < 2/3) return p + (q-p)*(2/3-t)*6; return p; }
       const q2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
       const p2 = 2 * l - q2;
@@ -1346,7 +1316,6 @@ function variateOnce() {
       params.color = '#' + ((1<<24)+(rr<<16)+(gg<<8)+bb).toString(16).slice(1);
     }
 
-    // Nudge numeric params: ±15% for continuous, ±1-2 for p/q
     function nudge(val, min, max, pct) {
       const range = max - min;
       const delta = range * pct * (Math.random() - 0.5) * 2;
@@ -1357,7 +1326,6 @@ function variateOnce() {
     if (!isLocked('radialSegments')) params.radialSegments = nudge(params.radialSegments, ranges.radialSegments[0], ranges.radialSegments[1], 0.12);
     if (!isLocked('tubularSegments')) params.tubularSegments = nudge(params.tubularSegments, ranges.tubularSegments[0], ranges.tubularSegments[1], 0.15);
 
-    // p, q: ±1 or ±2
     if (!isLocked('p')) {
       const pDelta = !isAnyFilter()
         ? (Math.random() < 0.7 ? (Math.random() < 0.5 ? -1 : 1) : (Math.random() < 0.5 ? -2 : 2))
@@ -1396,7 +1364,6 @@ function toggleSlowRandom() {
   } else {
     if (countdownTimer) clearInterval(countdownTimer);
     cd.textContent = '';
-    // Set to fixed
     document.getElementById('sp-0').classList.add('active');
     [10,30,60].forEach(v => document.getElementById('sp-'+v).classList.remove('active'));
   }
@@ -1407,13 +1374,10 @@ function setSpeed(s) {
   [10,30,60,0].forEach(v => document.getElementById('sp-'+v).classList.toggle('active', v===s));
   
   if (s === 0) {
-    // fixed = stop random
     if (slowRandomActive) toggleSlowRandom();
   } else {
-    // Start random if not running
     if (!slowRandomActive) toggleSlowRandom();
     else {
-      // Update countdown
       countdownVal = s;
       if (countdownTimer) clearInterval(countdownTimer);
       countdownTimer = setInterval(() => {
@@ -1435,7 +1399,7 @@ function updateParamDisplay() {
 let frameCount = 0, lastFps = performance.now();
 let lowFpsCount = 0;
 const FPS_THRESHOLD = 20;
-const LOW_FPS_LIMIT = 3; // 3 sec sustained low FPS triggers throttle
+const LOW_FPS_LIMIT = 3;
 
 function render() {
   requestAnimationFrame(render);
@@ -1445,7 +1409,6 @@ function render() {
     const fps = frameCount;
     document.getElementById('fps-display').textContent = fps + ' fps';
     
-    // Auto-pause on sustained low FPS
     if (fps < FPS_THRESHOLD && fps > 0) {
       lowFpsCount++;
       if (lowFpsCount >= LOW_FPS_LIMIT) {
@@ -1460,7 +1423,6 @@ function render() {
   }
   if (knot) {
     if (params.rotate) knot.rotation.y = step += 0.005;
-    // Dynamic opacity: only dim when very close to prevent white-out
     if (knot.material && knot.material.isPointsMaterial) {
       if (camDist < 30) {
         knot.material.opacity = 0.4 + (camDist - 10) / 20 * 0.5;
@@ -1480,14 +1442,17 @@ function render() {
     }
   }
   renderer.render(scene, camera);
+
+  // Auto-stop recording after 1 full rotation (2π)
+  if (isRecording && (step - recStartStep) >= Math.PI * 2) {
+    stopRecord();
+  }
 }
 
 function autoThrottle() {
-  // Stop random if running
   if (slowRandomActive) toggleSlowRandom();
   if (endlessActive) toggleEndless();
 
-  // Reduce radialSegments to half
   const prevRSeg = params.radialSegments;
   params.radialSegments = Math.max(50, Math.floor(params.radialSegments * 0.5));
   sliderRows.forEach(row => {
@@ -1495,7 +1460,6 @@ function autoThrottle() {
   });
   buildKnot();
 
-  // Show warning
   const cd = document.getElementById('countdown');
   cd.innerHTML = '<span style="color:#f44">⚠ rSeg ' + prevRSeg + '→' + params.radialSegments + '</span>';
   setTimeout(() => { if (!slowRandomActive) cd.textContent = ''; }, 4000);
@@ -1529,7 +1493,9 @@ function downloadScreenshot() {
   const a = document.createElement('a');
   a.href = lastScreenshotDataUrl;
   a.download = `torusknot_p${params.p}_q${params.q}_${Date.now()}.png`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
 }
 
 // ==================== VIDEO RECORDING ====================
@@ -1538,26 +1504,17 @@ let recordedChunks = [];
 let isRecording = false;
 let recStartTime = 0;
 let recTimer = null;
+let recStartStep = 0;
 
 function toggleRecord() {
-  if (isRecording) {
-    stopRecord();
-  } else {
-    startRecord();
-  }
+  if (isRecording) { stopRecord(); } else { startRecord(); }
 }
 
 function startRecord() {
   const canvas = renderer.domElement;
   const stream = canvas.captureStream(30);
   
-  // Try webm with VP9, fallback to VP8, fallback to default
-  const mimeTypes = [
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
-    'video/mp4'
-  ];
+  const mimeTypes = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'];
   let mimeType = '';
   for (const mt of mimeTypes) {
     if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
@@ -1580,9 +1537,20 @@ function startRecord() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `torusknot_p${params.p}_q${params.q}_${Date.now()}.${ext}`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  // Record start step for 1-loop auto-stop
+  recStartStep = step;
+
+  // Ensure rotation is on during recording
+  if (!params.rotate) {
+    params.rotate = true;
+    document.querySelector('[data-toggle="rotate"]').classList.add('on');
+  }
 
   mediaRecorder.start(100);
   isRecording = true;
@@ -1598,7 +1566,8 @@ function startRecord() {
     const sec = Math.floor((Date.now() - recStartTime) / 1000);
     const m = Math.floor(sec / 60);
     const s = sec % 60;
-    status.textContent = '● REC ' + m + ':' + String(s).padStart(2, '0');
+    const progress = Math.min(100, Math.round((step - recStartStep) / (Math.PI * 2) * 100));
+    status.textContent = '● REC ' + m + ':' + String(s).padStart(2, '0') + '  ' + progress + '%';
   }, 200);
 }
 
@@ -1609,7 +1578,7 @@ function stopRecord() {
   isRecording = false;
 
   const btn = document.getElementById('btn-record');
-  btn.textContent = '⏺ rec';
+  btn.textContent = '⏺ 1loop';
   btn.classList.remove('active');
 
   const status = document.getElementById('rec-status');
@@ -1618,15 +1587,13 @@ function stopRecord() {
   if (recTimer) clearInterval(recTimer);
 }
 
-function shareToX() { shareTo('x'); }
-
 function getShareText() {
   return `TorusKnot Particles ✨\np=${params.p} q=${params.q} radius=${params.radius} tube=${params.tube} radialSeg=${params.radialSegments} tubularSeg=${params.tubularSegments}`;
 }
 
 function shareTo(platform) {
   const text = getShareText();
-  const url = 'https://codepen.io/Tibixx/pen/pVKMvV';
+  const url = 'https://www.viorazu.com/';
   let shareUrl = '';
 
   switch(platform) {
@@ -1642,6 +1609,15 @@ function shareTo(platform) {
     case 'line':
       shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
       break;
+    case 'pinterest':
+      shareUrl = `https://pinterest.com/pin/create/button/?description=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      break;
+    case 'facebook':
+      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+      break;
+    case 'reddit':
+      shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`;
+      break;
     case 'copy':
       const copyText = text + '\n' + url;
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1652,7 +1628,6 @@ function shareTo(platform) {
       return;
   }
   if (shareUrl) {
-    // Use <a> click for sandbox compatibility
     const a = document.createElement('a');
     a.href = shareUrl;
     a.target = '_blank';
@@ -1692,16 +1667,11 @@ const MAX_HISTORY = 50;
 
 function pushHistory() {
   history.push({
-    color: params.color,
-    radius: params.radius,
-    tube: params.tube,
-    radialSegments: params.radialSegments,
-    tubularSegments: params.tubularSegments,
-    p: params.p,
-    q: params.q
+    color: params.color, radius: params.radius, tube: params.tube,
+    radialSegments: params.radialSegments, tubularSegments: params.tubularSegments,
+    p: params.p, q: params.q
   });
   if (history.length > MAX_HISTORY) history.shift();
-  // Clear redo stack on new action
   redoStack.length = 0;
 }
 
@@ -1709,20 +1679,13 @@ const redoStack = [];
 
 function undoParams() {
   if (history.length === 0) return;
-  // Save current to redo
   redoStack.push({
     color: params.color, radius: params.radius, tube: params.tube,
     radialSegments: params.radialSegments, tubularSegments: params.tubularSegments,
     p: params.p, q: params.q
   });
   const prev = history.pop();
-  params.color = prev.color;
-  params.radius = prev.radius;
-  params.tube = prev.tube;
-  params.radialSegments = prev.radialSegments;
-  params.tubularSegments = prev.tubularSegments;
-  params.p = prev.p;
-  params.q = prev.q;
+  Object.assign(params, prev);
 
   updateColorUI();
   sliderRows.forEach(row => {
@@ -1734,20 +1697,13 @@ function undoParams() {
 
 function redoParams() {
   if (redoStack.length === 0) return;
-  // Save current to history
   history.push({
     color: params.color, radius: params.radius, tube: params.tube,
     radialSegments: params.radialSegments, tubularSegments: params.tubularSegments,
     p: params.p, q: params.q
   });
   const next = redoStack.pop();
-  params.color = next.color;
-  params.radius = next.radius;
-  params.tube = next.tube;
-  params.radialSegments = next.radialSegments;
-  params.tubularSegments = next.tubularSegments;
-  params.p = next.p;
-  params.q = next.q;
+  Object.assign(params, next);
 
   updateColorUI();
   sliderRows.forEach(row => {
@@ -1767,7 +1723,6 @@ const STORAGE_KEY = 'torusknot_favorites';
 
 function saveFavorites() {
   try {
-    // Save without thumbnails (too large for localStorage)
     const slim = favorites.map(f => ({
       id: f.id, color: f.color, radius: f.radius, tube: f.tube,
       radialSegments: f.radialSegments, tubularSegments: f.tubularSegments,
@@ -1783,7 +1738,6 @@ function loadFavorites() {
     if (!data) return;
     const slim = JSON.parse(data);
     slim.forEach(f => {
-      f.thumb = ''; // Will regenerate on first view
       favorites.push(f);
     });
     renderFavGallery();
@@ -1791,19 +1745,16 @@ function loadFavorites() {
 }
 
 function resetAll() {
-  // Reset all filters
   Object.keys(parityFilters).forEach(k => parityFilters[k] = false);
   ['odd','even','prime','pow2','fib','square','tri','cat','mer','twin','mirror'].forEach(m =>
     document.getElementById('parity-'+m).classList.remove('active'));
 
-  // Reset all param locks
   Object.keys(paramLocks).forEach(k => paramLocks[k] = false);
   document.querySelectorAll('.s-lock').forEach(btn => {
     btn.textContent = '○';
     btn.classList.remove('locked');
   });
 
-  // Reset color lock
   colorLocked = false;
   const clBtn = document.getElementById('btn-color-lock');
   clBtn.textContent = '○';
@@ -1811,23 +1762,15 @@ function resetAll() {
 }
 
 function addFavorite() {
-  renderer.render(scene, camera);
-  const thumbUrl = renderer.domElement.toDataURL('image/png');
   const fav = {
     id: Date.now(),
-    color: params.color,
-    radius: params.radius,
-    tube: params.tube,
-    radialSegments: params.radialSegments,
-    tubularSegments: params.tubularSegments,
-    p: params.p,
-    q: params.q,
-    thumb: thumbUrl
+    color: params.color, radius: params.radius, tube: params.tube,
+    radialSegments: params.radialSegments, tubularSegments: params.tubularSegments,
+    p: params.p, q: params.q
   };
   favorites.push(fav);
   saveFavorites();
 
-  // Flash the button
   const btn = document.getElementById('btn-fav');
   btn.textContent = '★ saved!';
   btn.classList.add('active');
@@ -1864,7 +1807,6 @@ function loadFavorite(id) {
     buildKnot();
   });
 
-  // Highlight active
   document.querySelectorAll('.fav-item').forEach(el => el.classList.remove('active-fav'));
   const el = document.querySelector(`.fav-item[data-id="${id}"]`);
   if (el) el.classList.add('active-fav');
@@ -1878,7 +1820,6 @@ async function batchScreenshot() {
 
   for (let i = 0; i < favorites.length; i++) {
     const fav = favorites[i];
-    // Apply params directly (no fade)
     params.color = fav.color;
     params.radius = fav.radius;
     params.tube = fav.tube;
@@ -1893,11 +1834,9 @@ async function batchScreenshot() {
     });
     _buildKnotNow();
 
-    // Wait for render
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     renderer.render(scene, camera);
 
-    // Download
     const url = renderer.domElement.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
@@ -1923,8 +1862,8 @@ function renderFavGallery() {
     item.className = 'fav-item';
     item.dataset.id = fav.id;
     item.innerHTML = `
-      <img class="fav-thumb" src="${fav.thumb}">
-      <div class="fav-info">p=${fav.p} q=${fav.q}<br>r=${fav.radius} t=${fav.tube}</div>
+      <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${fav.color};flex-shrink:0;"></span>
+      <div class="fav-info">p=${fav.p} q=${fav.q} r=${fav.radius} t=${fav.tube} rS=${fav.radialSegments} tS=${fav.tubularSegments}</div>
       <button class="fav-del" onclick="event.stopPropagation(); removeFavorite(${fav.id})">✕</button>
     `;
     item.addEventListener('click', () => loadFavorite(fav.id));
@@ -1944,7 +1883,6 @@ function toggleEndless() {
       btn.textContent = '∞ endless';
       return;
     }
-    // Stop random if running
     if (slowRandomActive) toggleSlowRandom();
 
     btn.textContent = '∞ stop';

@@ -1706,12 +1706,11 @@ async function exportGallery() {
   _buildKnotNow();
 
   // HTML生成
-  const cardHTML = cards.map(({imgData, fav, rankMark}) => `
-    <div class=card>
-      <div class=rank>${rankMark}</div>
-      <img src=${imgData} alt=torusknot>
-      <div class=params>p=${fav.p} q=${fav.q} r=${fav.radius} t=${fav.tube} rS=${fav.radialSegments} tS=${fav.tubularSegments}</div>
-    </div>`).join('');
+  const base = 'https://viorazu.github.io/torusknot/index2.html';
+  const cardHTML = cards.map(({imgData, fav, rankMark}) => {
+    const qs = 'p='+fav.p+'&q='+fav.q+'&radius='+fav.radius+'&tube='+fav.tube+'&radialSegments='+fav.radialSegments+'&tubularSegments='+fav.tubularSegments+'&dotSize='+(fav.dotSize||4.5)+'&color='+encodeURIComponent(fav.color);
+    return '<a class="card" href="'+base+'?'+qs+'" target="_blank"><div class="rank">'+rankMark+'</div><img src="'+imgData+'" style="width:100%;display:block;"><div class="params">p='+fav.p+' q='+fav.q+' r='+fav.radius+' t='+fav.tube+' rS='+fav.radialSegments+' tS='+fav.tubularSegments+'</div></a>';
+  }).join('');
 
   const html = `<!DOCTYPE html>
 <html>

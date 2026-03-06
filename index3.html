@@ -897,7 +897,7 @@ function _buildKnotNow() {
   );
 
   const mat = new THREE.PointsMaterial({
-    color: darkBg ? 0xffffff : new THREE.Color(params.color),
+    color: new THREE.Color(params.color),
     size: params.dotSize, transparent: true,
     opacity: darkBg ? 0.7 : 0.9, alphaTest: 0.2, depthTest: false,
     blending: darkBg ? THREE.AdditiveBlending : THREE.NormalBlending,

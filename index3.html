@@ -344,7 +344,16 @@ input[type="text"]::placeholder { color: #555; }
   pointer-events: none;
 }
 
-#param-display { font-size: 10px; color: #222; font-weight: 300; letter-spacing: 0.5px; }
+#param-display {
+  font-size: 10px;
+  color: #333;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  pointer-events: all;
+  transition: color 0.2s;
+}
+#param-display:hover { color: #82e020; }
 #fps-display { font-size: 10px; color: #bbb; font-weight: 300; }
 
 .share-section .random-row { margin-bottom: 0; }
@@ -472,6 +481,39 @@ input[type="text"]::placeholder { color: #555; }
 #preview-img { max-width: 70vw; max-height: 60vh; border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
 #preview-info { font-size: 11px; color: #ccc; letter-spacing: 0.5px; }
 #preview-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* ★修正③：パラメータコピペ欄 */
+#param-io {
+  margin-top: 8px;
+  display: flex;
+  gap: 4px;
+}
+#param-io input {
+  flex: 1;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #ccc !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 5px 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+#param-io input:focus { border-color: rgba(130,224,32,0.3); }
+#btn-param-apply {
+  padding: 5px 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  color: #bbb;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+#btn-param-apply:hover { background: rgba(130,224,32,0.1); color: #82e020; border-color: rgba(130,224,32,0.25); }
 </style>
 </head>
 <body>
@@ -656,6 +698,14 @@ input[type="text"]::placeholder { color: #555; }
         <div id="fav-count" style="font-size:10px; color:#bbb; text-align:center; margin-top:6px;">0 saved</div>
         <button class="r-btn" id="btn-batch-shot" onclick="batchScreenshot()" style="width:100%; margin-top:4px; font-size:10px;">📷 save all</button>
         <button class="r-btn" id="btn-export-gallery" onclick="exportGallery()" style="width:100%; margin-top:4px; font-size:10px;">⊞ export gallery</button>
+
+        <!-- ★修正③：パラメータコピペ欄 -->
+        <div class="divider"></div>
+        <div style="font-size:10px; color:#555; margin-bottom:4px; letter-spacing:0.5px;">param copy/paste</div>
+        <div id="param-io">
+          <input type="text" id="param-paste-input" placeholder="paste params here...">
+          <button id="btn-param-apply" onclick="applyParamText()">apply</button>
+        </div>
         <div id="fav-gallery"></div>
       </div>
     </div>
@@ -687,7 +737,7 @@ input[type="text"]::placeholder { color: #555; }
 </div>
 
 <div id="bottom-bar">
-  <div id="param-display"></div>
+  <div id="param-display" onclick="copyParamText()" title="click to copy"></div>
   <div id="fps-display"></div>
 </div>
 
@@ -813,7 +863,6 @@ let buildTimer = null;
 
 function buildKnot(key) {
   if (key === 'dotSize') {
-    // rebuildなしでmaterialだけ更新
     if (knot && knot.material) knot.material.size = params.dotSize;
     if (knot2 && knot2.material) knot2.material.size = params.dotSize;
     return;
@@ -980,7 +1029,6 @@ let countdownTimer = null;
 
 const paramLocks = { radius: false, tube: false, radialSegments: false, tubularSegments: false, p: false, q: false, dotSize: false };
 
-// ===== parityFilters：3つ追加 =====
 let parityFilters = {
   odd: false, even: false, prime: false, pow2: false, fib: false,
   square: false, tri: false, twin: false, mirror: false, pq: false
@@ -1052,7 +1100,6 @@ function toggleBg() {
   buildKnot();
 }
 
-// ===== toggleParity：新IDを配列に追加 =====
 const ALL_PARITY_KEYS = ['odd','even','prime','pow2','fib','square','tri','twin','mirror','pq'];
 
 function toggleParity(mode) {
@@ -1077,7 +1124,6 @@ function matchesFilter(val) {
   if (parityFilters.tri && !triSet.has(val)) return false;
   if (parityFilters.twin && !twinSet.has(val)) return false;
   if (parityFilters.mirror && !isMirrorFree(val)) return false;
-  // pq は randomizeParams側で処理するのでここでは無視
   return true;
 }
 
@@ -1257,9 +1303,52 @@ function setSpeed(s) {
   }
 }
 
+// ★修正③：パラメータ文字列を生成する共通関数
+function buildParamText() {
+  return `p=${params.p} q=${params.q} r=${params.radius} t=${params.tube} rS=${params.radialSegments} tS=${params.tubularSegments} dot=${params.dotSize} color=${params.color}`;
+}
+
 function updateParamDisplay() {
   document.getElementById('param-display').textContent =
     `p=${params.p}  q=${params.q}  r=${params.radius}  t=${params.tube}  rS=${params.radialSegments}  tS=${params.tubularSegments}`;
+}
+
+// ★修正③：画面下のパラメータ表示をクリックでコピー
+function copyParamText() {
+  const text = buildParamText();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showCopyFeedback()).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+
+// ★修正③：テキストボックスのparamをparamsに反映
+function applyParamText() {
+  const input = document.getElementById('param-paste-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const map = {
+    p: 'p', q: 'q',
+    r: 'radius', radius: 'radius',
+    t: 'tube', tube: 'tube',
+    rS: 'radialSegments', radialSeg: 'radialSegments',
+    tS: 'tubularSegments', tubularSeg: 'tubularSegments',
+    dot: 'dotSize', dotSize: 'dotSize',
+    color: 'color'
+  };
+  const tokens = text.match(/(\w+)=([^\s]+)/g);
+  if (!tokens) return;
+  tokens.forEach(token => {
+    const [k, v] = token.split('=');
+    const key = map[k];
+    if (!key) return;
+    if (key === 'color') { params.color = v; }
+    else { params[key] = parseFloat(v); }
+  });
+  updateColorUI();
+  sliderRows.forEach(row => { const key = row.dataset.key; if (params[key] !== undefined) row._setVal(params[key]); });
+  buildKnot();
+  input.value = '';
+  showCopyFeedback();
 }
 
 let frameCount = 0, lastFps = performance.now();
@@ -1330,7 +1419,6 @@ function takeScreenshot() {
   const pad = Math.round(w * 0.012);
   const lineH = fontSize + 4;
 
-  // 右下：パラメータ
   ctx.textAlign = 'right';
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   const pmW = ctx.measureText(paramText).width;
@@ -1338,7 +1426,6 @@ function takeScreenshot() {
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.fillText(paramText, w - pad, h - pad);
 
-  // 左下：メモ
   if (memo) {
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -1455,26 +1542,27 @@ function stopRecord() {
 }
 
 function getShareText() {
-  return `TorusKnot Particles ✨\np=${params.p} q=${params.q} radius=${params.radius} tube=${params.tube} radialSeg=${params.radialSegments} tubularSeg=${params.tubularSegments}`;
+  return `TorusKnot Particles ✨\np=${params.p} q=${params.q} radius=${params.radius} tube=${params.tube} radialSeg=${params.radialSegments} tubularSeg=${params.tubularSegments} color=${params.color}`;
 }
 
+// ★修正①：shareTo関数 - Blueskyはパラメータ付きURL、viorazu.com除去
 function shareTo(platform) {
   const text = getShareText();
-  const url = 'https://www.viorazu.com/';
+  const siteUrl = 'https://www.viorazu.com/';
+  const paramUrl = 'https://viorazu.github.io/torusknot/index3.html?p='+params.p+'&q='+params.q+'&radius='+params.radius+'&tube='+params.tube+'&radialSegments='+params.radialSegments+'&tubularSegments='+params.tubularSegments+'&dotSize='+params.dotSize+'&color='+encodeURIComponent(params.color);
   let shareUrl = '';
   switch(platform) {
-    case 'x': shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`; break;
-    case 'bluesky': shareUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(text + '\n' + url)}`; break;
-    case 'threads': shareUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(text + '\n' + url)}`; break;
-    case 'line': shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`; break;
-    case 'pinterest': shareUrl = `https://pinterest.com/pin/create/button/?description=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`; break;
-    case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`; break;
-    case 'reddit': shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`; break;
+    case 'x': shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(siteUrl)}`; break;
+    case 'bluesky': shareUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(text + '\n' + paramUrl)}`; break;
+    case 'threads': shareUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(text + '\n' + siteUrl)}`; break;
+    case 'line': shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(siteUrl)}&text=${encodeURIComponent(text)}`; break;
+    case 'pinterest': shareUrl = `https://pinterest.com/pin/create/button/?description=${encodeURIComponent(text)}&url=${encodeURIComponent(siteUrl)}`; break;
+    case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(siteUrl)}&quote=${encodeURIComponent(text)}`; break;
+    case 'reddit': shareUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(siteUrl)}&title=${encodeURIComponent(text)}`; break;
     case 'copy':
-      const copyText = text + '\n' + url;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(copyText).then(() => showCopyFeedback()).catch(() => fallbackCopy(copyText));
-      } else { fallbackCopy(copyText); }
+        navigator.clipboard.writeText(paramUrl).then(() => showCopyFeedback()).catch(() => fallbackCopy(paramUrl));
+      } else { fallbackCopy(paramUrl); }
       return;
   }
   if (shareUrl) {
@@ -1586,7 +1674,6 @@ function loadFavorites() {
   } catch(e) {}
 }
 
-// ===== resetAll：新IDを配列に追加 =====
 function resetAll() {
   ALL_PARITY_KEYS.forEach(k => parityFilters[k] = false);
   ALL_PARITY_KEYS.forEach(m => document.getElementById('parity-'+m).classList.remove('active'));
@@ -1674,7 +1761,6 @@ async function exportGallery() {
   btn.textContent = '⊞ generating...';
   btn.disabled = true;
 
-  // 元パラメータ保存
   const origP = { color: params.color, radius: params.radius, tube: params.tube,
     radialSegments: params.radialSegments, tubularSegments: params.tubularSegments,
     p: params.p, q: params.q, dotSize: params.dotSize };
@@ -1699,13 +1785,11 @@ async function exportGallery() {
     await new Promise(r => setTimeout(r, 100));
   }
 
-  // 元に戻す
   Object.assign(params, origP);
   updateColorUI();
   sliderRows.forEach(row => { const key = row.dataset.key; if (params[key] !== undefined) row._setVal(params[key]); });
   _buildKnotNow();
 
-  // HTML生成
   const base = 'https://viorazu.github.io/torusknot/index3.html';
   const cardHTML = cards.map(({imgData, fav, rankMark}) => {
     const qs = 'p='+fav.p+'&q='+fav.q+'&radius='+fav.radius+'&tube='+fav.tube+'&radialSegments='+fav.radialSegments+'&tubularSegments='+fav.tubularSegments+'&dotSize='+(fav.dotSize||4.5)+'&color='+encodeURIComponent(fav.color);
@@ -1801,6 +1885,7 @@ function playEndless() {
 
 loadFavorites();
 
+// ★修正②：URLパラメータがある場合はrandomizeParamsを呼ばない
 (function() {
   const sp = new URLSearchParams(window.location.search);
   const keys = ['p','q','radius','tube','radialSegments','tubularSegments','dotSize','color'];
@@ -1817,9 +1902,10 @@ loadFavorites();
     updateColorUI();
     sliderRows.forEach(row => { const key = row.dataset.key; if (params[key] !== undefined) row._setVal(params[key]); });
   }
+  // ★修正②：hasParamならrandomizeしない
+  if (!hasParam) randomizeParams(); else buildKnot();
 })();
 
-randomizeParams();
 render();
 </script>
 </body>

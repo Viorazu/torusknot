@@ -1399,6 +1399,8 @@ function takeScreenshot() {
   const flash = document.getElementById('flash');
   flash.classList.add('active');
   setTimeout(() => flash.classList.remove('active'), 150);
+  // スクリーンショット時はparams.colorでレンダリング
+  if (knot && knot.material) knot.material.color.set(params.color);
   renderer.render(scene, camera);
 
   const srcCanvas = renderer.domElement;
